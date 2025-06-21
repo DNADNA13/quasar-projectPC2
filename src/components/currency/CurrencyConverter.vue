@@ -118,8 +118,8 @@ export default {
   data() {
     return {
       amount: null,
-      from: null, // Inicializar a null para que el q-select muestre el placeholder
-      to: null, // Inicializar a null para que el q-select muestre el placeholder
+      from: null, 
+      to: null, 
       monedas: [],
       resultado: '',
     }
@@ -131,14 +131,14 @@ export default {
     async cargarMonedas() {
       try {
         const response = await this.$axios.get('https://api.frankfurter.app/currencies')
-        // Ajustamos la estructura de los objetos de moneda para incluir 'name'
+        
         this.monedas = Object.entries(response.data).map(([code, name]) => ({
-          label: `${code} - ${name}`, // Esto es para la opción 'label' de Quasar
+          label: `${code} - ${name}`, 
           value: code,
-          name: name, // Guardamos el nombre completo también
+          name: name, 
         }))
 
-        // Establecer valores por defecto si no hay ninguno seleccionado (ej: USD y EUR)
+        
         if (!this.from && this.monedas.some((m) => m.value === 'USD')) {
           this.from = 'USD'
         }
@@ -154,7 +154,7 @@ export default {
     },
     async convertirMoneda() {
       const monto = Number(this.amount)
-      // Validación robusta: asegúrate de que el monto sea un número válido y mayor a cero
+      
       if (isNaN(monto) || monto <= 0) {
         Notify.create({ type: 'negative', message: 'Ingresa un monto válido mayor a cero.' })
         return
@@ -170,7 +170,7 @@ export default {
 
         if (response.data.rates && response.data.rates[this.to]) {
           const conversion = response.data.rates[this.to]
-          // Obtener los nombres completos de las monedas para el resultado
+          
           const fromName = this.monedas.find((m) => m.value === this.from)?.name || this.from
           const toName = this.monedas.find((m) => m.value === this.to)?.name || this.to
 
@@ -190,7 +190,7 @@ export default {
       }
     },
     intercambiar() {
-      // Intercambia los valores de 'from' y 'to' usando desestructuración de arrays
+      
       ;[this.from, this.to] = [this.to, this.from]
     },
   },
@@ -198,13 +198,13 @@ export default {
 </script>
 
 <style scoped>
-/* Puedes añadir estilos personalizados aquí si es necesario */
+
 .q-card {
-  border-radius: 12px; /* Esquinas más redondeadas */
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Sombra más suave */
+  border-radius: 12px; 
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); 
 }
 
-/* Estilos para el texto del q-select que se muestra cuando está seleccionado */
+
 .q-select .q-field__selected-item {
   display: flex;
   flex-direction: column;
