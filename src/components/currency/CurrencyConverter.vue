@@ -13,7 +13,14 @@
           <q-item-label class="q-mb-sm text-subtitle1 text-weight-medium"
             >Monto a convertir</q-item-label
           >
-          <q-input v-model.number="amount" type="number" outlined class="q-mb-md" required />
+          <q-input
+            v-model.number="amount"
+            type="number"
+            outlined
+            class="q-mb-md"
+            required
+            min="0"
+          />
         </div>
 
         <div class="row q-col-gutter-md q-mb-md items-center">
@@ -105,6 +112,7 @@
 </template>
 
 <script>
+import { Notify } from 'quasar'
 export default {
   name: 'CurrencyConverter',
   data() {
@@ -138,15 +146,21 @@ export default {
           this.to = 'EUR'
         }
       } catch {
-        this.$q.notify({
+        Notify.create({
           type: 'negative',
           message: 'Error al cargar las monedas',
         })
       }
     },
     async convertirMoneda() {
-      if (!this.amount || !this.from || !this.to) {
-        this.$q.notify({ type: 'warning', message: 'Completa todos los campos' })
+      const monto = Number(this.amount)
+      // Validación robusta: asegúrate de que el monto sea un número válido y mayor a cero
+      if (isNaN(monto) || monto <= 0) {
+        Notify.create({ type: 'negative', message: 'Ingresa un monto válido mayor a cero.' })
+        return
+      }
+      if (!this.from || !this.to) {
+        Notify.create({ type: 'negative', message: 'Selecciona ambas monedas.' })
         return
       }
 
@@ -162,20 +176,21 @@ export default {
 
           this.resultado = `${this.amount} ${fromName} equivalen a ${conversion} ${toName}`
         } else {
-          this.$q.notify({
+          Notify.create({
             type: 'negative',
             message: 'No se pudo obtener la tasa de conversión para las monedas seleccionadas.',
           })
         }
       } catch (error) {
-        console.error('Error en la conversión:', error) // Dejé el console.error para depuración
-        this.$q.notify({
+        console.error('Error en la conversión:', error)
+        Notify.create({
           type: 'negative',
           message: 'Error en la conversión. Verifica las monedas o el monto.',
         })
       }
     },
     intercambiar() {
+      // Intercambia los valores de 'from' y 'to' usando desestructuración de arrays
       ;[this.from, this.to] = [this.to, this.from]
     },
   },
