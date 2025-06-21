@@ -1,20 +1,106 @@
 <template>
-  <div class="q-pa-md">
-    <q-form @submit.prevent="convertirMoneda">
-      <q-input v-model.number="amount" type="number" label="Monto" class="q-mb-md" required />
+  <div class="q-pa-md" style="max-width: 500px; margin: auto">
+    <q-card class="q-pa-md q-shadow--2 rounded-borders">
+      <q-card-section class="text-center q-pb-md">
+        <div class="text-h5 text-weight-bold flex items-center justify-center">
+          <q-icon name="trending_up" class="q-mr-sm" color="green-6" size="md" />
+          Conversión de Monedas
+        </div>
+      </q-card-section>
 
-      <div class="row q-gutter-md q-mb-md">
-        <q-select v-model="from" :options="monedas" label="Desde" emit-value map-options />
-        <q-select v-model="to" :options="monedas" label="Hacia" emit-value map-options />
-        <q-btn label="⇄" @click="intercambiar" flat round />
-      </div>
+      <q-form @submit.prevent="convertirMoneda">
+        <div class="q-mb-md">
+          <q-item-label class="q-mb-sm text-subtitle1 text-weight-medium"
+            >Monto a convertir</q-item-label
+          >
+          <q-input v-model.number="amount" type="number" outlined class="q-mb-md" required />
+        </div>
 
-      <q-btn type="submit" label="Convertir" color="primary" class="q-mb-md" />
+        <div class="row q-col-gutter-md q-mb-md items-center">
+          <div class="col-5">
+            <q-item-label class="q-mb-sm text-subtitle1 text-weight-medium">Desde</q-item-label>
+            <q-select
+              v-model="from"
+              :options="monedas"
+              label="Seleccionar Moneda"
+              outlined
+              emit-value
+              map-options
+              option-label="label"
+              option-value="value"
+            >
+              <template v-slot:selected-item="scope">
+                <q-item>
+                  <q-item-section>
+                    <q-item-label class="text-subtitle1 text-weight-bold">{{
+                      scope.opt.value
+                    }}</q-item-label>
+                    <q-item-label caption>{{ scope.opt.name }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+              <template v-slot:option="scope">
+                <q-item v-bind="scope.itemProps" v-on="scope.itemHandlers">
+                  <q-item-section>
+                    <q-item-label>{{ scope.opt.value }} - {{ scope.opt.name }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+          </div>
 
-      <div v-if="resultado" class="q-mt-md text-h6">
-        {{ resultado }}
-      </div>
-    </q-form>
+          <div class="col-2 text-center">
+            <q-btn
+              icon="swap_vert"
+              @click="intercambiar"
+              flat
+              round
+              size="lg"
+              color="grey-7"
+              class="q-mt-md"
+            />
+          </div>
+
+          <div class="col-5">
+            <q-item-label class="q-mb-sm text-subtitle1 text-weight-medium">Hacia</q-item-label>
+            <q-select
+              v-model="to"
+              :options="monedas"
+              label="Seleccionar Moneda"
+              outlined
+              emit-value
+              map-options
+              option-label="label"
+              option-value="value"
+            >
+              <template v-slot:selected-item="scope">
+                <q-item>
+                  <q-item-section>
+                    <q-item-label class="text-subtitle1 text-weight-bold">{{
+                      scope.opt.value
+                    }}</q-item-label>
+                    <q-item-label caption>{{ scope.opt.name }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+              <template v-slot:option="scope">
+                <q-item v-bind="scope.itemProps" v-on="scope.itemHandlers">
+                  <q-item-section>
+                    <q-item-label>{{ scope.opt.value }} - {{ scope.opt.name }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+          </div>
+        </div>
+
+        <q-btn type="submit" label="Convertir" color="primary" class="full-width q-py-sm" rounded />
+
+        <div v-if="resultado" class="q-mt-lg text-center text-h6 text-weight-medium">
+          {{ resultado }}
+        </div>
+      </q-form>
+    </q-card>
   </div>
 </template>
 
@@ -24,8 +110,8 @@ export default {
   data() {
     return {
       amount: null,
-      from: '',
-      to: '',
+      from: null, // Inicializar a null para que el q-select muestre el placeholder
+      to: null, // Inicializar a null para que el q-select muestre el placeholder
       monedas: [],
       resultado: '',
     }
@@ -37,12 +123,21 @@ export default {
     async cargarMonedas() {
       try {
         const response = await this.$axios.get('https://api.frankfurter.app/currencies')
+        // Ajustamos la estructura de los objetos de moneda para incluir 'name'
         this.monedas = Object.entries(response.data).map(([code, name]) => ({
-          label: `${code} - ${name}`,
+          label: `${code} - ${name}`, // Esto es para la opción 'label' de Quasar
           value: code,
+          name: name, // Guardamos el nombre completo también
         }))
+
+        // Establecer valores por defecto si no hay ninguno seleccionado (ej: USD y EUR)
+        if (!this.from && this.monedas.some((m) => m.value === 'USD')) {
+          this.from = 'USD'
+        }
+        if (!this.to && this.monedas.some((m) => m.value === 'EUR')) {
+          this.to = 'EUR'
+        }
       } catch {
-        // <-- **CAMBIO AQUÍ: Eliminamos 'error'**
         this.$q.notify({
           type: 'negative',
           message: 'Error al cargar las monedas',
@@ -58,11 +153,26 @@ export default {
       try {
         const url = `https://api.frankfurter.app/latest?amount=${this.amount}&from=${this.from}&to=${this.to}`
         const response = await this.$axios.get(url)
-        const conversion = response.data.rates[this.to]
-        this.resultado = `${this.amount} ${this.from} equivalen a ${conversion} ${this.to}`
-      } catch {
-        // <-- **CAMBIO AQUÍ: Eliminamos 'error'**
-        this.$q.notify({ type: 'negative', message: 'Error en la conversión' })
+
+        if (response.data.rates && response.data.rates[this.to]) {
+          const conversion = response.data.rates[this.to]
+          // Obtener los nombres completos de las monedas para el resultado
+          const fromName = this.monedas.find((m) => m.value === this.from)?.name || this.from
+          const toName = this.monedas.find((m) => m.value === this.to)?.name || this.to
+
+          this.resultado = `${this.amount} ${fromName} equivalen a ${conversion} ${toName}`
+        } else {
+          this.$q.notify({
+            type: 'negative',
+            message: 'No se pudo obtener la tasa de conversión para las monedas seleccionadas.',
+          })
+        }
+      } catch (error) {
+        console.error('Error en la conversión:', error) // Dejé el console.error para depuración
+        this.$q.notify({
+          type: 'negative',
+          message: 'Error en la conversión. Verifica las monedas o el monto.',
+        })
       }
     },
     intercambiar() {
@@ -71,3 +181,18 @@ export default {
   },
 }
 </script>
+
+<style scoped>
+/* Puedes añadir estilos personalizados aquí si es necesario */
+.q-card {
+  border-radius: 12px; /* Esquinas más redondeadas */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Sombra más suave */
+}
+
+/* Estilos para el texto del q-select que se muestra cuando está seleccionado */
+.q-select .q-field__selected-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+</style>
